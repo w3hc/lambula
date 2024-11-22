@@ -15,15 +15,15 @@ import {
 import { useState, useEffect } from 'react'
 import { BrowserProvider, Contract, Eip1193Provider, parseEther } from 'ethers'
 import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react'
-import { ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_ABI } from '../utils/erc20'
-import { LinkComponent } from '../components/LinkComponent'
+import { ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_ABI } from '../../utils/erc20'
+import { LinkComponent } from '../../components/LinkComponent'
 import { ethers } from 'ethers'
-import { Head } from '../components/Head'
-import { SITE_NAME, SITE_DESCRIPTION } from '../utils/config'
+import { Head } from '../../components/Head'
+import { SITE_NAME, SITE_DESCRIPTION } from '../../utils/config'
 import { NextSeo } from 'next-seo'
-import { SITE_URL } from '../utils/config'
+import { SITE_URL } from '../../utils/config'
 
-export default function Home() {
+export default function EthBase() {
   const seoTitle = 'Lambula - Bridge your assets in seconds'
   const seoDescription =
     'An on-chain asset bridge for converting ERC-20 tokens between EVM-compatible blockchains without smart contracts or interfaces.'
@@ -34,9 +34,7 @@ export default function Home() {
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
   const [swapAmount, setSwapAmount] = useState<string>('8')
-  const [availableBalance, setAvailableBalance] = useState<number | null>(200)
-  const [selectedToken, setSelectedToken] = useState<string>('LINK')
-  const [isFirstClick, setIsFirstClick] = useState(false)
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
 
   const { address, isConnected, caipAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
@@ -209,16 +207,6 @@ export default function Home() {
     return amount > availableBalance
   }
 
-  const handleClick = () => {
-    if (!isFirstClick) {
-      setIsFirstClick(true)
-      setTimeout(() => setIsFirstClick(false), 10000)
-    } else {
-      setIsFirstClick(false)
-      doSomething()
-    }
-  }
-
   return (
     <>
       <NextSeo
@@ -267,19 +255,14 @@ export default function Home() {
           <>
             <Flex gap={4} align="center" mt={20}>
               <NumberInput value={swapAmount} onChange={handleSwapAmountChange} min={1} max={10000} step={1} flex={1}>
-                <NumberInputField
-                  borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
-                  _hover={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
-                  _focus={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
-                />
+                <NumberInputField />
                 <NumberInputStepper>
                   <NumberIncrementStepper />
                   <NumberDecrementStepper />
                 </NumberInputStepper>
               </NumberInput>
 
-              <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-                {' '}
+              <Select width="200px">
                 <option value="LINK">LINK</option>
                 <option value="BASIC">BASIC</option>
                 <option value="ETH">ETH</option>
@@ -288,31 +271,14 @@ export default function Home() {
             <br />
             <Box
               p={4}
-              borderWidth="3px"
-              borderStyle="solid"
+              borderWidth={1}
               borderColor="#8c1c84"
               borderRadius="lg"
               my={2}
               mb={3}
+              onClick={openEtherscan}
               cursor="pointer"
-              transition="all 0.07s"
-              style={{
-                animation: isFirstClick ? 'blink 0.2s ease-in-out infinite' : 'none',
-              }}
-              sx={{
-                '@keyframes blink': {
-                  '0%': { opacity: 1 },
-                  '50%': { opacity: 0.3 },
-                  '100%': { opacity: 1 },
-                },
-              }}
-              // animation={isFirstClick ? `${blinkAnimation} 0.5s ease-in-out infinite` : 'none'}
-              onClick={handleClick}
-              _hover={{
-                borderColor: '#45a2f8',
-                boxShadow: 'md',
-                transform: 'scale(1.01)',
-              }}>
+              _hover={{ borderColor: '#45a2f8', boxShadow: 'md' }}>
               {/* <Text>
               Network: <strong>{network}</strong>
             </Text>
@@ -326,11 +292,8 @@ export default function Home() {
               Address: <strong>{address || 'Not connected'}</strong>
             </Text> */}
               <Text>
-                Bridge{' '}
-                <strong>
-                  {!swapAmount ? 'your' : swapAmount} {selectedToken}
-                </strong>{' '}
-                from <strong>Sepolia</strong> to <strong>OP Sepolia</strong>.
+                Bridge <strong>{!swapAmount ? 'your' : swapAmount} LINK</strong> from <strong>Sepolia</strong> to{' '}
+                <strong>OP Sepolia</strong>.
               </Text>
             </Box>
             <Text fontSize="sm" color="gray.500">
@@ -353,11 +316,6 @@ export default function Home() {
             <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
           </Text>
         )}{' '}
-        <Box mt={8} p={4} borderWidth={1} borderRadius="lg">
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '14px' }}>
-            {JSON.stringify(require('../utils/deamon-bridge.json').tokensList, null, 2)}
-          </pre>
-        </Box>
       </main>
     </>
   )
