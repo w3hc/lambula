@@ -1,5 +1,17 @@
 import * as React from 'react'
-import { Text, Button, useToast, Box } from '@chakra-ui/react'
+import {
+  Text,
+  Button,
+  useToast,
+  Box,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Flex,
+  Select,
+} from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { BrowserProvider, Contract, Eip1193Provider, parseEther } from 'ethers'
 import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react'
@@ -21,7 +33,9 @@ export default function Home() {
   const [txHash, setTxHash] = useState<string>()
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
-  // const [loginType, setLoginType] = useState<string>('Not connected')
+  const [swapAmount, setSwapAmount] = useState<string>('8')
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
+  const [selectedToken, setSelectedToken] = useState<string>('LINK')
 
   const { address, isConnected, caipAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
@@ -184,6 +198,16 @@ export default function Home() {
     }
   }
 
+  const handleSwapAmountChange = (valueString: string) => {
+    setSwapAmount(valueString)
+  }
+
+  const isAmountExceedingBalance = () => {
+    if (availableBalance === null) return false
+    const amount = parseFloat(swapAmount)
+    return amount > availableBalance
+  }
+
   return (
     <>
       <NextSeo
@@ -213,7 +237,7 @@ export default function Home() {
         additionalMetaTags={[
           {
             name: 'keywords',
-            content: 'web3, ethereum, blockchain, dapp, template, next.js, react, typescript',
+            content: 'web3, ethereum, blockchain, dapp, onchain, bridge, swap, erc20 ',
           },
           {
             name: 'author',
@@ -225,34 +249,64 @@ export default function Home() {
       <main>
         {!isConnected ? (
           <>
-            <Text>You can login with your email, Google, or with one of many wallets suported by Reown.</Text>
+            <Text>Please connect your wallet.</Text>
             <br />
           </>
         ) : (
-          <Box
-            p={4}
-            borderWidth={1}
-            borderRadius="lg"
-            my={2}
-            mb={8}
-            onClick={openEtherscan}
-            cursor="pointer"
-            _hover={{ borderColor: 'blue.500', boxShadow: 'md' }}>
-            <Text>
+          <>
+            <Flex gap={4} align="center" mt={20}>
+              <NumberInput value={swapAmount} onChange={handleSwapAmountChange} min={1} max={10000} step={1} flex={1}>
+                <NumberInputField />
+                <NumberInputStepper>
+                  <NumberIncrementStepper />
+                  <NumberDecrementStepper />
+                </NumberInputStepper>
+              </NumberInput>
+
+              <Select width="200px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
+                {' '}
+                <option value="LINK">LINK</option>
+                <option value="BASIC">BASIC</option>
+                <option value="ETH">ETH</option>
+              </Select>
+            </Flex>
+            <br />
+            <Box
+              p={4}
+              borderWidth={1}
+              borderColor="#8c1c84"
+              borderRadius="lg"
+              my={2}
+              mb={3}
+              onClick={openEtherscan}
+              cursor="pointer"
+              _hover={{ borderColor: '#45a2f8', boxShadow: 'md' }}>
+              {/* <Text>
               Network: <strong>{network}</strong>
             </Text>
             {/* <Text>
               Login type: <strong>{loginType}</strong>
-            </Text> */}
+            </Text>
             <Text>
               Balance: <strong>{balance} ETH</strong>
             </Text>
             <Text>
               Address: <strong>{address || 'Not connected'}</strong>
+            </Text> */}
+              <Text>
+                Bridge{' '}
+                <strong>
+                  {!swapAmount ? 'your' : swapAmount} {selectedToken}
+                </strong>{' '}
+                from <strong>Sepolia</strong> to <strong>OP Sepolia</strong>.
+              </Text>
+            </Box>
+            <Text fontSize="sm" color="gray.500">
+              You will pay <strong>0.10</strong> EUR and it will take <strong>3</strong> seconds.
             </Text>
-          </Box>
+          </>
         )}
-        <Button
+        {/* <Button
           colorScheme="blue"
           variant="outline"
           type="submit"
@@ -260,13 +314,18 @@ export default function Home() {
           isLoading={isLoading}
           loadingText="Minting..."
           spinnerPlacement="end">
-          Mint
-        </Button>
+          Bridge
+        </Button> */}
         {txHash && isConnected && (
           <Text py={4} fontSize="14px" color="#45a2f8">
             <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
           </Text>
         )}{' '}
+        <Box mt={8} p={4} borderWidth={1} borderRadius="lg">
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '14px' }}>
+            {JSON.stringify(require('../utils/deamon-bridge.json').tokensList, null, 2)}
+          </pre>
+        </Box>
       </main>
     </>
   )
