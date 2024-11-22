@@ -22,6 +22,7 @@
     "@emotion/styled": "^11.13.0",
     "@reown/appkit": "^1.1.2",
     "@reown/appkit-adapter-ethers": "^1.1.2",
+    "@reown/appkit-siwe": "^1.5.1",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "10.4.20",
