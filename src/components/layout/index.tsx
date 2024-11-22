@@ -12,7 +12,7 @@ export default function RootLayout({ children }: Props) {
     <Web3Modal>
       <Box margin="0 auto" minH="100vh">
         <Header />
-        <Container maxW="container.lg">{children}</Container>
+        <Container maxW="container.sm">{children}</Container>
       </Box>
     </Web3Modal>
   )
