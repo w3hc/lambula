@@ -39,7 +39,7 @@ export function Header(props: Props) {
       mb={8}
       alignItems="center">
       <LinkComponent href="/" invisible>
-        <Heading as="h1" size="md">
+        <Heading as="h1" size="md" mr={4}>
           {SITE_NAME}
         </Heading>
       </LinkComponent>
