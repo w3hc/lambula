@@ -48,11 +48,14 @@ export function Header(props: Props) {
       <Menu>
         <MenuButton as={IconButton} aria-label="Options" icon={<HamburgerIcon />} size={'sm'} mr={4} />
         <MenuList>
-          <LinkComponent href="/" invisible>
-            <MenuItem fontSize="md">Home</MenuItem>
+          <LinkComponent href="/eth-op" invisible>
+            <MenuItem fontSize="md">Sepolia to OP Sepolia</MenuItem>
           </LinkComponent>
-          <LinkComponent href="/new" invisible>
-            <MenuItem fontSize="md">New</MenuItem>
+          <LinkComponent href="/eth-arb" invisible>
+            <MenuItem fontSize="md">Sepolia to Arbitrum Sepolia</MenuItem>
+          </LinkComponent>
+          <LinkComponent href="/eth-base" invisible>
+            <MenuItem fontSize="md">Sepolia to Base Sepolia</MenuItem>
           </LinkComponent>
         </MenuList>
       </Menu>
