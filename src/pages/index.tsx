@@ -34,8 +34,9 @@ export default function Home() {
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
   const [swapAmount, setSwapAmount] = useState<string>('8')
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
+  const [availableBalance, setAvailableBalance] = useState<number | null>(200)
   const [selectedToken, setSelectedToken] = useState<string>('LINK')
+  const [isFirstClick, setIsFirstClick] = useState(false)
 
   const { address, isConnected, caipAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
@@ -208,6 +209,16 @@ export default function Home() {
     return amount > availableBalance
   }
 
+  const handleClick = () => {
+    if (!isFirstClick) {
+      setIsFirstClick(true)
+      setTimeout(() => setIsFirstClick(false), 10000)
+    } else {
+      setIsFirstClick(false)
+      doSomething()
+    }
+  }
+
   return (
     <>
       <NextSeo
@@ -256,14 +267,18 @@ export default function Home() {
           <>
             <Flex gap={4} align="center" mt={20}>
               <NumberInput value={swapAmount} onChange={handleSwapAmountChange} min={1} max={10000} step={1} flex={1}>
-                <NumberInputField />
+                <NumberInputField
+                  borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
+                  _hover={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
+                  _focus={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
+                />
                 <NumberInputStepper>
                   <NumberIncrementStepper />
                   <NumberDecrementStepper />
                 </NumberInputStepper>
               </NumberInput>
 
-              <Select width="200px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
+              <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
                 {' '}
                 <option value="LINK">LINK</option>
                 <option value="BASIC">BASIC</option>
@@ -273,14 +288,31 @@ export default function Home() {
             <br />
             <Box
               p={4}
-              borderWidth={1}
+              borderWidth="3px"
+              borderStyle="solid"
               borderColor="#8c1c84"
               borderRadius="lg"
               my={2}
               mb={3}
-              onClick={openEtherscan}
               cursor="pointer"
-              _hover={{ borderColor: '#45a2f8', boxShadow: 'md' }}>
+              transition="all 0.07s"
+              style={{
+                animation: isFirstClick ? 'blink 0.2s ease-in-out infinite' : 'none',
+              }}
+              sx={{
+                '@keyframes blink': {
+                  '0%': { opacity: 1 },
+                  '50%': { opacity: 0.3 },
+                  '100%': { opacity: 1 },
+                },
+              }}
+              // animation={isFirstClick ? `${blinkAnimation} 0.5s ease-in-out infinite` : 'none'}
+              onClick={handleClick}
+              _hover={{
+                borderColor: '#45a2f8',
+                boxShadow: 'md',
+                transform: 'scale(1.01)',
+              }}>
               {/* <Text>
               Network: <strong>{network}</strong>
             </Text>
