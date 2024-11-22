@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -32,12 +30,14 @@ yarn-error.log*
 .vercel
 
 # typescript
-
 *.tsbuildinfo
 next-env.d.ts
-/.history
 
-# Misc
+# IDE
+.idea
+.vscode
 
-NOTES.md
-.swc
+# package manager
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
