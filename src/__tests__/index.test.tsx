@@ -4,9 +4,8 @@ import '@testing-library/jest-dom'
 import Home from '@/pages/index'
 
 describe('Home page', () => {
-  it('renders the mint button', () => {
+  it('shows connect wallet message', () => {
     render(<Home />)
-    const button = screen.getByRole('button', { name: /mint/i })
-    expect(button).toBeInTheDocument()
+    expect(screen.getByText(/Please connect your wallet/i)).toBeInTheDocument()
   })
 })

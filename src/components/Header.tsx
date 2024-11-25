@@ -45,7 +45,7 @@ export function Header(props: Props) {
       </LinkComponent>
 
       <Spacer />
-      <Menu>
+      {/* <Menu>
         <MenuButton as={IconButton} aria-label="Options" icon={<HamburgerIcon />} size={'sm'} mr={4} />
         <MenuList>
           <LinkComponent href="/eth-op" invisible>
@@ -58,7 +58,7 @@ export function Header(props: Props) {
             <MenuItem fontSize="md">Sepolia to Base Sepolia</MenuItem>
           </LinkComponent>
         </MenuList>
-      </Menu>
+      </Menu> */}
       <Flex alignItems="center" gap={4}>
         <w3m-button />
         <Flex alignItems="center">

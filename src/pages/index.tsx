@@ -37,6 +37,57 @@ export default function Home() {
   const [availableBalance, setAvailableBalance] = useState<number | null>(200)
   const [selectedToken, setSelectedToken] = useState<string>('LINK')
   const [isFirstClick, setIsFirstClick] = useState(false)
+  const [sourceNetwork, setSourceNetwork] = useState('Sepolia')
+  const [destinationNetwork, setDestinationNetwork] = useState('OP Sepolia')
+
+  const networks = [
+    {
+      name: 'Sepolia',
+      availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
+      enabled: true,
+    },
+    {
+      name: 'OP Sepolia',
+      availableDestinations: ['Base Sepolia', 'Arbitrum Sepolia'],
+      enabled: false,
+    },
+    {
+      name: 'Base Sepolia',
+      availableDestinations: ['Sepolia'],
+      enabled: false,
+    },
+    {
+      name: 'Arbitrum Sepolia',
+      availableDestinations: ['Sepolia'],
+      enabled: false,
+    },
+  ]
+
+  const getAvailableDestinations = (source: any) => {
+    const network = networks.find((n) => n.name === source)
+    return network ? network.availableDestinations : []
+  }
+
+  const tokens = [
+    {
+      ticker: 'LINK',
+      available: true,
+      min: 1,
+      max: 50,
+    },
+    {
+      ticker: 'BASIC',
+      available: false,
+      min: 100,
+      max: 10000,
+    },
+    {
+      ticker: 'ETH',
+      available: false,
+      min: 0.01,
+      max: 10,
+    },
+  ]
 
   const { address, isConnected, caipAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
@@ -200,7 +251,17 @@ export default function Home() {
   }
 
   const handleSwapAmountChange = (valueString: string) => {
-    setSwapAmount(valueString)
+    const selectedTokenData = tokens.find((t) => t.ticker === selectedToken)
+    if (!selectedTokenData) return
+
+    const value = parseFloat(valueString)
+    if (value < selectedTokenData.min) {
+      setSwapAmount(selectedTokenData.min.toString())
+    } else if (value > selectedTokenData.max) {
+      setSwapAmount(selectedTokenData.max.toString())
+    } else {
+      setSwapAmount(valueString)
+    }
   }
 
   const isAmountExceedingBalance = () => {
@@ -265,8 +326,35 @@ export default function Home() {
           </>
         ) : (
           <>
-            <Flex gap={4} align="center" mt={20}>
-              <NumberInput value={swapAmount} onChange={handleSwapAmountChange} min={1} max={10000} step={1} flex={1}>
+            <Flex gap={4} align="center" mt={20} mb={8}>
+              {/* <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)} maxWidth="150px"> */}
+              <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>
+                {networks.map((network) => (
+                  <option key={network.name} value={network.name} disabled={!network.enabled}>
+                    {network.name}
+                  </option>
+                ))}
+              </Select>
+              <Text mx={2}>→</Text>
+              <Select value={destinationNetwork} onChange={(e) => setDestinationNetwork(e.target.value)}>
+                {networks.map((network) => (
+                  <option
+                    key={network.name}
+                    value={network.name}
+                    disabled={!getAvailableDestinations(sourceNetwork).includes(network.name)}>
+                    {network.name}
+                  </option>
+                ))}
+              </Select>
+            </Flex>
+            <Flex gap={4} align="center" mt={3}>
+              <NumberInput
+                value={swapAmount}
+                onChange={handleSwapAmountChange}
+                min={tokens.find((t) => t.ticker === selectedToken)?.min || 1}
+                max={tokens.find((t) => t.ticker === selectedToken)?.max || 200}
+                step={selectedToken === 'ETH' ? 0.01 : 1}
+                flex={1}>
                 <NumberInputField
                   borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
                   _hover={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
@@ -279,16 +367,17 @@ export default function Home() {
               </NumberInput>
 
               <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-                {' '}
-                <option value="LINK">LINK</option>
-                <option value="BASIC">BASIC</option>
-                <option value="ETH">ETH</option>
+                {tokens.map((token) => (
+                  <option key={token.ticker} value={token.ticker} disabled={!token.available}>
+                    {token.ticker}
+                  </option>
+                ))}
               </Select>
             </Flex>
             <br />
             <Box
               p={4}
-              borderWidth="3px"
+              borderWidth="4px"
               borderStyle="solid"
               borderColor="#8c1c84"
               borderRadius="lg"
@@ -330,7 +419,7 @@ export default function Home() {
                 <strong>
                   {!swapAmount ? 'your' : swapAmount} {selectedToken}
                 </strong>{' '}
-                from <strong>Sepolia</strong> to <strong>OP Sepolia</strong>.
+                from <strong>{sourceNetwork}</strong> to <strong>{destinationNetwork}</strong>.
               </Text>
             </Box>
             <Text fontSize="sm" color="gray.500">
@@ -353,11 +442,11 @@ export default function Home() {
             <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
           </Text>
         )}{' '}
-        <Box mt={8} p={4} borderWidth={1} borderRadius="lg">
+        {/* <Box mt={8} p={4} borderWidth={1} borderRadius="lg">
           <pre style={{ whiteSpace: 'pre-wrap', fontSize: '14px' }}>
             {JSON.stringify(require('../utils/deamon-bridge.json').tokensList, null, 2)}
           </pre>
-        </Box>
+        </Box> */}
       </main>
     </>
   )
