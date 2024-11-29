@@ -1,0 +1,119 @@
+{
+	"general": {
+		"project": "Deamon Bridge",
+		"version": "1.0",
+		"http_port": 3000
+	},
+	"listeningNetwork": {
+		"networkName": "sepolia"
+	},
+	"networks": [
+		{
+			"networkName": "Optimism Sepolia",
+			"networkLongName": "Optimism Sepolia Testnet",
+			"symbol": "ETH",
+			"testnet": true,
+			"RPC_URLs": [
+				{
+					"rpcurl": "https://sepolia.optimism.io",
+					"type": "",
+					"apikey": ""
+				}
+			]
+		},
+		{
+			"networkName": "Arbitrum Sepolia",
+			"networkLongName": "Arbitrum Sepolia (testnet)",
+			"symbol": "ETH",
+			"testnet": true,
+			"RPC_URLs": [
+				{
+					"rpcurl": "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
+					"type": "",
+					"apikey": ""
+				}
+			]
+		},
+		{
+			"networkName": "Base Sepolia",
+			"networkLongName": "Base Sepolia (testnet)",
+			"symbol": "ETH",
+			"testnet": true,
+			"RPC_URLs": [
+				{
+					"rpcurl": "https://sepolia.base.org",
+					"type": "",
+					"apikey": ""
+				}
+			]
+		}
+	],
+	"tokensList": [
+		{
+			"activated": true,
+			"listeningAddress": "0x9747098f57D9D7994fe416e4160F2aD1D15F2a99",
+			"tokenName": "LINK",
+			"minNoRefund": "0.01",
+			"min": "0.5",
+			"max": "10.0",
+			"fixedFees": "0.1",
+			"feesPcent": 0.01,
+			"conversionRateBC1toBC2": 1,
+			"conversionRateBC1toTokenBC1": 1,
+			"tokenContractAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+			"toNetwork": "Optimism Sepolia",
+			"toTokenContractAddress": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
+			"toToken": "LINK",
+			"conversionRateTokenBC1toTokenBC2": 1,
+			"toPublicKey": "0x9747098f57D9D7994fe416e4160F2aD1D15F2a99",
+			"publicKey4refund": "0x9747098f57D9D7994fe416e4160F2aD1D15F2a99",
+			"listeningBalance": "2.998916836563391134",
+			"toNativeBalance": "1.999561295885016734",
+			"toTokenBalance": "9.0"
+		},
+		{
+			"activated": true,
+			"listeningAddress": "0x71f7aaB7f69a4Cc5509903C2585FC84ecaba5485",
+			"tokenName": "LINK",
+			"minNoRefund": "0.01",
+			"min": "0.5",
+			"max": "10.0",
+			"fixedFees": "0.1",
+			"feesPcent": 0.01,
+			"conversionRateBC1toBC2": 1,
+			"conversionRateBC1toTokenBC1": 1,
+			"tokenContractAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+			"toNetwork": "Arbitrum Sepolia",
+			"toTokenContractAddress": "0xb1D4538B4571d411F07960EF2838Ce337FE1E80E",
+			"toToken": "LINK",
+			"conversionRateTokenBC1toTokenBC2": 1,
+			"toPublicKey": "0x9747098f57D9D7994fe416e4160F2aD1D15F2a99",
+			"publicKey4refund": "0xD8a394e7d7894bDF2C57139fF17e5CBAa29Dd977",
+			"listeningBalance": "7.097436208907350307",
+			"toNativeBalance": "0.0",
+			"toTokenBalance": "0.0"
+		},
+		{
+			"activated": true,
+			"listeningAddress": "0x0000000000000000000000000000000000000000",
+			"tokenName": "LINK",
+			"minNoRefund": "0.01",
+			"min": "0.5",
+			"max": "10.0",
+			"fixedFees": "0.1",
+			"feesPcent": 0.01,
+			"conversionRateBC1toBC2": 1,
+			"conversionRateBC1toTokenBC1": 1,
+			"tokenContractAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+			"toNetwork": "Base Sepolia",
+			"toTokenContractAddress": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
+			"toToken": "LINK",
+			"conversionRateTokenBC1toTokenBC2": 1,
+			"toPublicKey": "0x9747098f57D9D7994fe416e4160F2aD1D15F2a99",
+			"publicKey4refund": "0xD8a394e7d7894bDF2C57139fF17e5CBAa29Dd977",
+			"listeningBalance": "7.097436208907350307",
+			"toNativeBalance": "0.0",
+			"toTokenBalance": "0.0"
+		}
+	]
+}
