@@ -1,7 +1,6 @@
 import * as React from 'react'
 import {
   Text,
-  Button,
   useToast,
   Box,
   NumberInput,
@@ -28,22 +27,65 @@ export default function Home() {
   const seoDescription =
     'An on-chain asset bridge for converting ERC-20 tokens between EVM-compatible blockchains without smart contracts or interfaces.'
 
+  interface Tokens {
+    ticker: string
+    available: boolean
+    min: number
+    max: number
+    fixedFees: string
+    feesPcent: number
+  }
+
+  interface Networks {
+    name: string
+    availableDestinations: string[]
+    enabled: boolean
+  }
+
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [txLink, setTxLink] = useState<string>()
   const [txHash, setTxHash] = useState<string>()
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
-  const [swapAmount, setSwapAmount] = useState<string>('8')
+  const [swapAmount, setSwapAmount] = useState<string>('2')
   const [availableBalance, setAvailableBalance] = useState<number | null>(200)
   const [selectedToken, setSelectedToken] = useState<string>('LINK')
   const [isFirstClick, setIsFirstClick] = useState(false)
   const [sourceNetwork, setSourceNetwork] = useState('Sepolia')
   const [destinationNetwork, setDestinationNetwork] = useState('OP Sepolia')
-
-  const networks = [
+  const [totalFees, setTotalFees] = useState<number | null>(200)
+  const [quote, setQuote] = useState<number | null>(200)
+  const [tokens, setTokens] = useState<Tokens[]>([
+    {
+      ticker: 'LINK',
+      available: true,
+      min: 0,
+      max: 200,
+      fixedFees: '0.1',
+      feesPcent: 0.01,
+    },
+    {
+      ticker: 'BASIC',
+      available: false,
+      min: 100,
+      max: 10000,
+      fixedFees: '0.1',
+      feesPcent: 0.01,
+    },
+    {
+      ticker: 'ETH',
+      available: false,
+      min: 0.01,
+      max: 10,
+      fixedFees: '0.1',
+      feesPcent: 0.01,
+    },
+  ])
+  const [networks, setNetworks] = useState<Networks[]>([
     {
       name: 'Sepolia',
-      availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
+      // availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
+      availableDestinations: ['OP Sepolia'],
       enabled: true,
     },
     {
@@ -61,49 +103,96 @@ export default function Home() {
       availableDestinations: ['Sepolia'],
       enabled: false,
     },
-  ]
+  ])
 
   const getAvailableDestinations = (source: any) => {
     const network = networks.find((n) => n.name === source)
     return network ? network.availableDestinations : []
   }
 
-  const tokens = [
-    {
-      ticker: 'LINK',
-      available: true,
-      min: 1,
-      max: 50,
-    },
-    {
-      ticker: 'BASIC',
-      available: false,
-      min: 100,
-      max: 10000,
-    },
-    {
-      ticker: 'ETH',
-      available: false,
-      min: 0.01,
-      max: 10,
-    },
-  ]
-
   const { address, isConnected, caipAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
-  // const { walletInfo } = useWalletInfo()
   const toast = useToast()
 
   useEffect(() => {
-    if (isConnected) {
-      setTxHash(undefined)
-      getNetwork()
-      // updateLoginType()
-      getBal()
-      console.log('user address:', address)
-      console.log('erc20  contract address:', ERC20_CONTRACT_ADDRESS)
-      // console.log('walletInfo:', walletInfo)
+    const init = async () => {
+      if (!isConnected) return
+      try {
+        // TODO: connect with prod
+
+        // test env
+        // const res = await fetch('http://localhost:3000/json')
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+
+        // fake data
+        const res = await fetch(`${baseUrl}/config.json`)
+
+        const data = await res.json()
+        console.log('JSON data:', data)
+
+        // format tokens
+        setTokens([
+          {
+            ticker: 'LINK',
+            available: true,
+            min: data.tokensList[0].min,
+            max: data.tokensList[0].max,
+            fixedFees: Number(data.tokensList[0].fixedFees).toFixed(4),
+            feesPcent: data.tokensList[0].feesPcent,
+          },
+          {
+            ticker: 'BASIC',
+            available: false,
+            min: 100,
+            max: 10000,
+            fixedFees: '0.1',
+            feesPcent: 0.01,
+          },
+          {
+            ticker: 'ETH',
+            available: false,
+            min: 0.01,
+            max: 10,
+            fixedFees: '0.1',
+            feesPcent: 0.01,
+          },
+        ])
+
+        // format networks
+        setNetworks([
+          {
+            name: 'Sepolia',
+            // availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
+            availableDestinations: ['OP Sepolia'],
+            enabled: true,
+          },
+          {
+            name: 'OP Sepolia',
+            availableDestinations: ['Base Sepolia', 'Arbitrum Sepolia'],
+            enabled: false,
+          },
+          {
+            name: 'Base Sepolia',
+            availableDestinations: ['Sepolia'],
+            enabled: false,
+          },
+          {
+            name: 'Arbitrum Sepolia',
+            availableDestinations: ['Sepolia'],
+            enabled: false,
+          },
+        ])
+        await getNetwork()
+        await getBal()
+        console.log('user address:', address)
+        console.log('erc20 contract address:', ERC20_CONTRACT_ADDRESS)
+      } catch (err) {
+        console.error('Error fetching data:', err)
+      }
+      setQuote(parseFloat(swapAmount) - (parseFloat(swapAmount) * 0.01 + parseFloat('0.1')))
+      setTotalFees(parseFloat(swapAmount) * 0.01 + parseFloat('0.1'))
     }
+    init()
   }, [isConnected, address, caipAddress])
 
   const getBal = async () => {
@@ -132,17 +221,6 @@ export default function Home() {
       setNetwork(capitalize(network.name))
     }
   }
-
-  // const updateLoginType = async () => {
-  //   try {
-  //     if (walletInfo != undefined) {
-  //       setLoginType(walletInfo.name ? walletInfo.name : 'Unknown')
-  //     }
-  //   } catch (error) {
-  //     console.error('Error getting login type:', error)
-  //     setLoginType('Unknown')
-  //   }
-  // }
 
   const openEtherscan = () => {
     if (address) {
@@ -251,17 +329,21 @@ export default function Home() {
   }
 
   const handleSwapAmountChange = (valueString: string) => {
-    const selectedTokenData = tokens.find((t) => t.ticker === selectedToken)
-    if (!selectedTokenData) return
-
+    setSwapAmount(valueString)
     const value = parseFloat(valueString)
+    const selectedTokenData = tokens.find((t) => t.ticker === selectedToken)
+
+    if (!selectedTokenData || isNaN(value)) return
+
     if (value < selectedTokenData.min) {
-      setSwapAmount(selectedTokenData.min.toString())
+      setTimeout(() => setSwapAmount(selectedTokenData.min.toFixed(4)), 1000)
     } else if (value > selectedTokenData.max) {
-      setSwapAmount(selectedTokenData.max.toString())
-    } else {
-      setSwapAmount(valueString)
+      setTimeout(() => setSwapAmount(selectedTokenData.max.toFixed(4)), 1000)
     }
+
+    const fees = value * selectedTokenData.feesPcent + parseFloat(selectedTokenData.fixedFees)
+    setTotalFees(Number(fees.toFixed(4)))
+    setQuote(Number((value - fees).toFixed(4)))
   }
 
   const isAmountExceedingBalance = () => {
@@ -327,7 +409,6 @@ export default function Home() {
         ) : (
           <>
             <Flex gap={4} align="center" mt={20} mb={8}>
-              {/* <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)} maxWidth="150px"> */}
               <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>
                 {networks.map((network) => (
                   <option key={network.name} value={network.name} disabled={!network.enabled}>
@@ -350,7 +431,7 @@ export default function Home() {
             <Flex gap={4} align="center" mt={3}>
               <NumberInput
                 value={swapAmount}
-                onChange={handleSwapAmountChange}
+                onChange={(value: string) => handleSwapAmountChange(value)}
                 min={tokens.find((t) => t.ticker === selectedToken)?.min || 1}
                 max={tokens.find((t) => t.ticker === selectedToken)?.max || 200}
                 step={selectedToken === 'ETH' ? 0.01 : 1}
@@ -395,58 +476,32 @@ export default function Home() {
                   '100%': { opacity: 1 },
                 },
               }}
-              // animation={isFirstClick ? `${blinkAnimation} 0.5s ease-in-out infinite` : 'none'}
               onClick={handleClick}
               _hover={{
                 borderColor: '#45a2f8',
                 boxShadow: 'md',
                 transform: 'scale(1.01)',
               }}>
-              {/* <Text>
-              Network: <strong>{network}</strong>
-            </Text>
-            {/* <Text>
-              Login type: <strong>{loginType}</strong>
-            </Text>
-            <Text>
-              Balance: <strong>{balance} ETH</strong>
-            </Text>
-            <Text>
-              Address: <strong>{address || 'Not connected'}</strong>
-            </Text> */}
               <Text>
-                Bridge{' '}
+                Send{' '}
                 <strong>
                   {!swapAmount ? 'your' : swapAmount} {selectedToken}
                 </strong>{' '}
-                from <strong>{sourceNetwork}</strong> to <strong>{destinationNetwork}</strong>.
+                on <strong>{sourceNetwork}</strong> and you will get <strong>{Number(quote).toFixed(4)}</strong>{' '}
+                <strong>{selectedToken}</strong> on <strong>{destinationNetwork}</strong>.
               </Text>
             </Box>
             <Text fontSize="sm" color="gray.500">
-              You will pay <strong>0.10</strong> EUR and it will take <strong>3</strong> seconds.
+              Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> LINK in service fees.
+              It should take about <strong>3</strong> seconds.
             </Text>
           </>
         )}
-        {/* <Button
-          colorScheme="blue"
-          variant="outline"
-          type="submit"
-          onClick={doSomething}
-          isLoading={isLoading}
-          loadingText="Minting..."
-          spinnerPlacement="end">
-          Bridge
-        </Button> */}
         {txHash && isConnected && (
           <Text py={4} fontSize="14px" color="#45a2f8">
             <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
           </Text>
         )}{' '}
-        {/* <Box mt={8} p={4} borderWidth={1} borderRadius="lg">
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '14px' }}>
-            {JSON.stringify(require('../utils/deamon-bridge.json').tokensList, null, 2)}
-          </pre>
-        </Box> */}
       </main>
     </>
   )
