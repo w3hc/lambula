@@ -34,6 +34,9 @@ export default function Home() {
     max: number
     fixedFees: string
     feesPcent: number
+    bridgeOperatorOpAddress: string
+    tokenSepoliaAddress: string
+    tokenOptimismAddress: string
   }
 
   interface Networks {
@@ -47,7 +50,7 @@ export default function Home() {
   const [txHash, setTxHash] = useState<string>()
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
-  const [swapAmount, setSwapAmount] = useState<string>('2')
+  const [swapAmount, setSwapAmount] = useState<string>('0.42')
   const [availableBalance, setAvailableBalance] = useState<number | null>(200)
   const [selectedToken, setSelectedToken] = useState<string>('LINK')
   const [isFirstClick, setIsFirstClick] = useState(false)
@@ -63,6 +66,9 @@ export default function Home() {
       max: 200,
       fixedFees: '0.1',
       feesPcent: 0.01,
+      bridgeOperatorOpAddress: '',
+      tokenSepoliaAddress: '',
+      tokenOptimismAddress: '',
     },
     {
       ticker: 'BASIC',
@@ -71,6 +77,9 @@ export default function Home() {
       max: 10000,
       fixedFees: '0.1',
       feesPcent: 0.01,
+      bridgeOperatorOpAddress: '',
+      tokenSepoliaAddress: '',
+      tokenOptimismAddress: '',
     },
     {
       ticker: 'ETH',
@@ -79,6 +88,9 @@ export default function Home() {
       max: 10,
       fixedFees: '0.1',
       feesPcent: 0.01,
+      bridgeOperatorOpAddress: '',
+      tokenSepoliaAddress: '',
+      tokenOptimismAddress: '',
     },
   ])
   const [networks, setNetworks] = useState<Networks[]>([
@@ -118,17 +130,29 @@ export default function Home() {
     const init = async () => {
       if (!isConnected) return
       try {
-        // TODO: connect with prod
+        const deamonEndpointUrl = 'http://91.169.206.199:997/json'
+        // const deamonEndpointUrl = 'http://localhost:3001/json'
 
         // test env
-        // const res = await fetch('http://localhost:3000/json')
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+        const res = await fetch(deamonEndpointUrl)
 
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
         // fake data
-        const res = await fetch(`${baseUrl}/config.json`)
+        // const res = await fetch(`${baseUrl}/config.json`)
 
         const data = await res.json()
         console.log('JSON data:', data)
+
+        /* 
+
+        "tokensList": [
+
+        "listeningAddress": "0x962aC815B1249027Cfd80D6b0476C9090B5aeF39",
+        "tokenContractAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+        "toNetwork": "Optimism Sepolia",
+        "toTokenContractAddress": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
+
+        */
 
         // format tokens
         setTokens([
@@ -137,8 +161,11 @@ export default function Home() {
             available: true,
             min: data.tokensList[0].min,
             max: data.tokensList[0].max,
-            fixedFees: Number(data.tokensList[0].fixedFees).toFixed(4),
+            fixedFees: Number(data.tokensList[0].fixedFees).toFixed(6),
             feesPcent: data.tokensList[0].feesPcent,
+            bridgeOperatorOpAddress: data.tokensList[0].listeningAddress,
+            tokenSepoliaAddress: data.tokensList[0].tokenContractAddress,
+            tokenOptimismAddress: data.tokensList[0].toTokenContractAddress,
           },
           {
             ticker: 'BASIC',
@@ -147,6 +174,9 @@ export default function Home() {
             max: 10000,
             fixedFees: '0.1',
             feesPcent: 0.01,
+            bridgeOperatorOpAddress: '',
+            tokenSepoliaAddress: '',
+            tokenOptimismAddress: '',
           },
           {
             ticker: 'ETH',
@@ -155,6 +185,9 @@ export default function Home() {
             max: 10,
             fixedFees: '0.1',
             feesPcent: 0.01,
+            bridgeOperatorOpAddress: '',
+            tokenSepoliaAddress: '',
+            tokenOptimismAddress: '',
           },
         ])
 
@@ -188,6 +221,15 @@ export default function Home() {
         console.log('erc20 contract address:', ERC20_CONTRACT_ADDRESS)
       } catch (err) {
         console.error('Error fetching data:', err)
+        toast({
+          title: 'Error fetching deamon data',
+          description: 'It seems like the deamon is not responding right now. Sorry for the inconvenience.',
+          status: 'error',
+          position: 'bottom',
+          variant: 'subtle',
+          duration: 9000,
+          isClosable: true,
+        })
       }
       setQuote(parseFloat(swapAmount) - (parseFloat(swapAmount) * 0.01 + parseFloat('0.1')))
       setTotalFees(parseFloat(swapAmount) * 0.01 + parseFloat('0.1'))
@@ -250,7 +292,7 @@ export default function Home() {
     }
   }
 
-  const doSomething = async () => {
+  const send = async () => {
     setTxHash(undefined)
     try {
       if (!isConnected) {
@@ -272,19 +314,23 @@ export default function Home() {
         const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider)
         const signer = await ethersProvider.getSigner()
 
-        const erc20 = new Contract(ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_ABI, signer)
-
         ///// Send ETH if needed /////
-        const bal = await getBal()
-        console.log('bal:', bal)
-        if (bal < 0.025) {
-          const faucetTxHash = await faucetTx()
-          console.log('faucet tx:', faucetTxHash)
-          const bal = await getBal()
-          console.log('bal:', bal)
-        }
+        // const bal = await getBal()
+        // console.log('bal:', bal)
+        // if (bal < 0.025) {
+        //   const faucetTxHash = await faucetTx()
+        //   console.log('faucet tx:', faucetTxHash)
+        //   const bal = await getBal()
+        //   console.log('bal:', bal)
+        // }
+
         ///// Call /////
-        const call = await erc20.mint(parseEther('10000')) // 0.000804454399826656 ETH // https://sepolia.etherscan.io/tx/0x687e32332965aa451abe45f89c9fefc4b5afe6e99c95948a300565f16a212d7b
+        const erc20 = new Contract(tokens[0].tokenSepoliaAddress, ERC20_CONTRACT_ABI, signer) // TODO: adjust token index ([0])
+
+        const amount = parseEther(swapAmount)
+        const to = tokens[0].bridgeOperatorOpAddress
+        const call = await erc20.transfer(to, amount)
+        // const call = await erc20.mint(parseEther('10000')) // 0.000804454399826656 ETH // https://sepolia.etherscan.io/tx/0x687e32332965aa451abe45f89c9fefc4b5afe6e99c95948a300565f16a212d7b
 
         let receipt: ethers.ContractTransactionReceipt | null = null
         try {
@@ -315,7 +361,7 @@ export default function Home() {
       }
     } catch (e) {
       setIsLoading(false)
-      console.error('Error in doSomething:', e)
+      console.error('Error in send:', e)
       toast({
         title: 'Woops',
         description: e instanceof Error ? e.message : 'Something went wrong...',
@@ -335,15 +381,17 @@ export default function Home() {
 
     if (!selectedTokenData || isNaN(value)) return
 
-    if (value < selectedTokenData.min) {
-      setTimeout(() => setSwapAmount(selectedTokenData.min.toFixed(4)), 1000)
-    } else if (value > selectedTokenData.max) {
-      setTimeout(() => setSwapAmount(selectedTokenData.max.toFixed(4)), 1000)
-    }
+    // if (value < selectedTokenData.min) {
+    //   setTimeout(() => setSwapAmount(selectedTokenData.min.toFixed(6)), 1000)
+    // } else if (value > selectedTokenData.max) {
+    //   setTimeout(() => setSwapAmount(selectedTokenData.max.toFixed(6)), 1000)
+    // }
 
     const fees = value * selectedTokenData.feesPcent + parseFloat(selectedTokenData.fixedFees)
+
     setTotalFees(Number(fees.toFixed(4)))
     setQuote(Number((value - fees).toFixed(4)))
+    // TODO: adjust token index / token address
   }
 
   const isAmountExceedingBalance = () => {
@@ -358,7 +406,7 @@ export default function Home() {
       setTimeout(() => setIsFirstClick(false), 10000)
     } else {
       setIsFirstClick(false)
-      doSomething()
+      send()
     }
   }
 
