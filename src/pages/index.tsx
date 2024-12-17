@@ -37,6 +37,7 @@ export default function Home() {
     bridgeOperatorOpAddress: string
     tokenSepoliaAddress: string
     tokenOptimismAddress: string
+    conversionRateTokenBC1toTokenBC2: number
   }
 
   interface Networks {
@@ -50,14 +51,16 @@ export default function Home() {
   const [txHash, setTxHash] = useState<string>()
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
-  const [swapAmount, setSwapAmount] = useState<string>('0.42')
+  const [swapAmount, setSwapAmount] = useState<string>('0.0005')
   const [availableBalance, setAvailableBalance] = useState<number | null>(200)
-  const [selectedToken, setSelectedToken] = useState<string>('LINK')
+  const [selectedToken, setSelectedToken] = useState<string>('ETH')
   const [isFirstClick, setIsFirstClick] = useState(false)
   const [sourceNetwork, setSourceNetwork] = useState('Sepolia')
   const [destinationNetwork, setDestinationNetwork] = useState('OP Sepolia')
   const [totalFees, setTotalFees] = useState<number | null>(200)
   const [quote, setQuote] = useState<number | null>(200)
+  const [step, setStep] = useState<number | null>(0)
+
   const [tokens, setTokens] = useState<Tokens[]>([
     {
       ticker: 'LINK',
@@ -69,21 +72,23 @@ export default function Home() {
       bridgeOperatorOpAddress: '',
       tokenSepoliaAddress: '',
       tokenOptimismAddress: '',
+      conversionRateTokenBC1toTokenBC2: 1,
     },
-    {
-      ticker: 'BASIC',
-      available: false,
-      min: 100,
-      max: 10000,
-      fixedFees: '0.1',
-      feesPcent: 0.01,
-      bridgeOperatorOpAddress: '',
-      tokenSepoliaAddress: '',
-      tokenOptimismAddress: '',
-    },
+    // {
+    //   ticker: 'BASIC',
+    //   available: false,
+    //   min: 100,
+    //   max: 10000,
+    //   fixedFees: '0.1',
+    //   feesPcent: 0.01,
+    //   bridgeOperatorOpAddress: '',
+    //   tokenSepoliaAddress: '',
+    //   tokenOptimismAddress: '',
+    //   conversionRateTokenBC1toTokenBC2: 1,
+    // },
     {
       ticker: 'ETH',
-      available: false,
+      available: true,
       min: 0.01,
       max: 10,
       fixedFees: '0.1',
@@ -91,6 +96,7 @@ export default function Home() {
       bridgeOperatorOpAddress: '',
       tokenSepoliaAddress: '',
       tokenOptimismAddress: '',
+      conversionRateTokenBC1toTokenBC2: 1,
     },
   ])
   const [networks, setNetworks] = useState<Networks[]>([
@@ -126,6 +132,8 @@ export default function Home() {
   const { walletProvider } = useAppKitProvider('eip155')
   const toast = useToast()
 
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms * 1000))
+
   useEffect(() => {
     const init = async () => {
       if (!isConnected) return
@@ -141,7 +149,11 @@ export default function Home() {
         // const res = await fetch(`${baseUrl}/config.json`)
 
         const data = await res.json()
-        console.log('JSON data:', data)
+        console.log(
+          'data.listeningNetwork.nativeTokens[0].listeningAddress:',
+          data.listeningNetwork.nativeTokens[0].listeningAddress
+        ),
+          console.log('JSON data:', data)
 
         /* 
 
@@ -155,6 +167,7 @@ export default function Home() {
         */
 
         // format tokens
+
         setTokens([
           {
             ticker: 'LINK',
@@ -166,31 +179,33 @@ export default function Home() {
             bridgeOperatorOpAddress: data.tokensList[0].listeningAddress,
             tokenSepoliaAddress: data.tokensList[0].tokenContractAddress,
             tokenOptimismAddress: data.tokensList[0].toTokenContractAddress,
+            conversionRateTokenBC1toTokenBC2: data.tokensList[0].conversionRateTokenBC1toTokenBC2,
           },
-          {
-            ticker: 'BASIC',
-            available: false,
-            min: 100,
-            max: 10000,
-            fixedFees: '0.1',
-            feesPcent: 0.01,
-            bridgeOperatorOpAddress: '',
-            tokenSepoliaAddress: '',
-            tokenOptimismAddress: '',
-          },
+          // {
+          //   ticker: 'BASIC',
+          //   available: false,
+          //   min: 100,
+          //   max: 10000,
+          //   fixedFees: '0.1',
+          //   feesPcent: 0.01,
+          //   bridgeOperatorOpAddress: '',
+          //   tokenSepoliaAddress: '',
+          //   tokenOptimismAddress: '',
+          //   conversionRateTokenBC1toTokenBC2: 1,
+          // },
           {
             ticker: 'ETH',
-            available: false,
-            min: 0.01,
-            max: 10,
-            fixedFees: '0.1',
-            feesPcent: 0.01,
-            bridgeOperatorOpAddress: '',
-            tokenSepoliaAddress: '',
-            tokenOptimismAddress: '',
+            available: data.listeningNetwork.nativeTokens[0].activated,
+            min: data.listeningNetwork.nativeTokens[0].min,
+            max: data.listeningNetwork.nativeTokens[0].max,
+            fixedFees: Number(data.listeningNetwork.nativeTokens[0].fixedFees).toFixed(6),
+            feesPcent: data.listeningNetwork.nativeTokens[0].feesPcent,
+            bridgeOperatorOpAddress: data.listeningNetwork.nativeTokens[0].listeningAddress,
+            tokenSepoliaAddress: '0x',
+            tokenOptimismAddress: '0x',
+            conversionRateTokenBC1toTokenBC2: data.listeningNetwork.nativeTokens[0].conversionRateBC1toBC2,
           },
         ])
-
         // format networks
         setNetworks([
           {
@@ -293,6 +308,7 @@ export default function Home() {
   }
 
   const send = async () => {
+    setStep(0)
     setTxHash(undefined)
     try {
       if (!isConnected) {
@@ -325,14 +341,25 @@ export default function Home() {
         // }
 
         ///// Call /////
-        const erc20 = new Contract(tokens[0].tokenSepoliaAddress, ERC20_CONTRACT_ABI, signer) // TODO: adjust token index ([0])
+        // const erc20 = new Contract(tokens[0].tokenSepoliaAddress, ERC20_CONTRACT_ABI, signer) // TODO: adjust token index ([0])
 
+        ///// Token call /////
+        // const amount = parseEther(swapAmount)
+        // const to = tokens[0].bridgeOperatorOpAddress
+        // const call = await erc20.transfer(to, amount)
+
+        ///// ETH call /////
         const amount = parseEther(swapAmount)
-        const to = tokens[0].bridgeOperatorOpAddress
-        const call = await erc20.transfer(to, amount)
-        // const call = await erc20.mint(parseEther('10000')) // 0.000804454399826656 ETH // https://sepolia.etherscan.io/tx/0x687e32332965aa451abe45f89c9fefc4b5afe6e99c95948a300565f16a212d7b
+        console.log('amount:', amount)
+        const to = tokens[1].bridgeOperatorOpAddress
+        console.log('bridge address:', to)
 
-        let receipt: ethers.ContractTransactionReceipt | null = null
+        const call = await signer.sendTransaction({
+          to,
+          value: amount,
+        })
+
+        let receipt: any
         try {
           receipt = await call.wait()
         } catch (error) {
@@ -358,7 +385,31 @@ export default function Home() {
           isClosable: true,
         })
         await getBal()
+        setStep(1)
       }
+      await delay(5) // TODO: check tx status on OP Sepolia // "rpcurl": "https://sepolia.optimism.io",
+
+      /** 
+
+  FAIRE 2 FONCTIONS : 1 token, 1 natif
+
+      let new_signer_receive_balance = 0
+      let i = 0
+      while (true) {
+        await sleep(waitingTime)
+        new_signer_receive_balance = await providerReceive.getBalance(signerSender.address)
+        if (!new_signer_receive_balance.eq(signer_receive_balance)) break
+        new_signer_balance = await providerSend.getBalance(signerSender.address)
+        if (new_signer_balance.eq(signer_balance)) break
+        i++
+        if (i > maxTime) break
+      }
+
+      **/
+
+      setStep(2)
+      await delay(5)
+      setStep(3)
     } catch (e) {
       setIsLoading(false)
       console.error('Error in send:', e)
@@ -390,7 +441,7 @@ export default function Home() {
     const fees = value * selectedTokenData.feesPcent + parseFloat(selectedTokenData.fixedFees)
 
     setTotalFees(Number(fees.toFixed(4)))
-    setQuote(Number((value - fees).toFixed(4)))
+    setQuote(Number(((value - fees) * selectedTokenData.conversionRateTokenBC1toTokenBC2).toFixed(4)))
     // TODO: adjust token index / token address
   }
 
@@ -540,16 +591,19 @@ export default function Home() {
               </Text>
             </Box>
             <Text fontSize="sm" color="gray.500">
-              Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> LINK in service fees.
-              It should take about <strong>3</strong> seconds.
+              Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> {selectedToken} in
+              service fees. It should take about <strong>3</strong> seconds.
             </Text>
           </>
         )}
-        {txHash && isConnected && (
+        {step === 1 && <Text py={4}>Your tx on Sepolia went through ✅</Text>}{' '}
+        {step === 2 && <Text py={4}>Tx on OP Sepolia is being confirmed…</Text>}{' '}
+        {step === 3 && <Text py={4}>Tx on OP Sepolia confirmed ✅</Text>}{' '}
+        {/* {txHash && isConnected && (
           <Text py={4} fontSize="14px" color="#45a2f8">
             <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
           </Text>
-        )}{' '}
+        )}{' '} */}
       </main>
     </>
   )
