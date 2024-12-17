@@ -500,102 +500,95 @@ export default function Home() {
       />
       <Head title={SITE_NAME} description={SITE_DESCRIPTION} />
       <main>
-        {!isConnected ? (
-          <>
-            <Text>Please connect your wallet.</Text>
-            <br />
-          </>
-        ) : (
-          <>
-            <Flex gap={4} align="center" mt={20} mb={8}>
-              <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>
-                {networks.map((network) => (
-                  <option key={network.name} value={network.name} disabled={!network.enabled}>
-                    {network.name}
-                  </option>
-                ))}
-              </Select>
-              <Text mx={2}>→</Text>
-              <Select value={destinationNetwork} onChange={(e) => setDestinationNetwork(e.target.value)}>
-                {networks.map((network) => (
-                  <option
-                    key={network.name}
-                    value={network.name}
-                    disabled={!getAvailableDestinations(sourceNetwork).includes(network.name)}>
-                    {network.name}
-                  </option>
-                ))}
-              </Select>
-            </Flex>
-            <Flex gap={4} align="center" mt={3}>
-              <NumberInput
-                value={swapAmount}
-                onChange={(value: string) => handleSwapAmountChange(value)}
-                min={tokens.find((t) => t.ticker === selectedToken)?.min || 1}
-                max={tokens.find((t) => t.ticker === selectedToken)?.max || 200}
-                step={selectedToken === 'ETH' ? 0.01 : 1}
-                flex={1}>
-                <NumberInputField
-                  borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
-                  _hover={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
-                  _focus={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
-                />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
+        <>
+          <Flex gap={4} align="center" mt={20} mb={8}>
+            <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>
+              {networks.map((network) => (
+                <option key={network.name} value={network.name} disabled={!network.enabled}>
+                  {network.name}
+                </option>
+              ))}
+            </Select>
+            <Text mx={2}>→</Text>
+            <Select value={destinationNetwork} onChange={(e) => setDestinationNetwork(e.target.value)}>
+              {networks.map((network) => (
+                <option
+                  key={network.name}
+                  value={network.name}
+                  disabled={!getAvailableDestinations(sourceNetwork).includes(network.name)}>
+                  {network.name}
+                </option>
+              ))}
+            </Select>
+          </Flex>
+          <Flex gap={4} align="center" mt={3}>
+            <NumberInput
+              value={swapAmount}
+              onChange={(value: string) => handleSwapAmountChange(value)}
+              min={tokens.find((t) => t.ticker === selectedToken)?.min || 1}
+              max={tokens.find((t) => t.ticker === selectedToken)?.max || 200}
+              step={selectedToken === 'ETH' ? 0.01 : 1}
+              flex={1}>
+              <NumberInputField
+                borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
+                _hover={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
+                _focus={{ borderColor: isAmountExceedingBalance() ? 'red.600' : undefined }}
+              />
+              <NumberInputStepper>
+                <NumberIncrementStepper />
+                <NumberDecrementStepper />
+              </NumberInputStepper>
+            </NumberInput>
 
-              <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-                {tokens.map((token) => (
-                  <option key={token.ticker} value={token.ticker} disabled={!token.available}>
-                    {token.ticker}
-                  </option>
-                ))}
-              </Select>
-            </Flex>
-            <br />
-            <Box
-              p={4}
-              borderWidth="4px"
-              borderStyle="solid"
-              borderColor="#8c1c84"
-              borderRadius="lg"
-              my={2}
-              mb={3}
-              cursor="pointer"
-              transition="all 0.07s"
-              style={{
-                animation: isFirstClick ? 'blink 0.2s ease-in-out infinite' : 'none',
-              }}
-              sx={{
-                '@keyframes blink': {
-                  '0%': { opacity: 1 },
-                  '50%': { opacity: 0.3 },
-                  '100%': { opacity: 1 },
-                },
-              }}
-              onClick={handleClick}
-              _hover={{
-                borderColor: '#45a2f8',
-                boxShadow: 'md',
-                transform: 'scale(1.01)',
-              }}>
-              <Text>
-                Send{' '}
-                <strong>
-                  {!swapAmount ? 'your' : swapAmount} {selectedToken}
-                </strong>{' '}
-                on <strong>{sourceNetwork}</strong> and you will get <strong>{Number(quote).toFixed(4)}</strong>{' '}
-                <strong>{selectedToken}</strong> on <strong>{destinationNetwork}</strong>.
-              </Text>
-            </Box>
-            <Text fontSize="sm" color="gray.500">
-              Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> {selectedToken} in
-              service fees. It should take about <strong>3</strong> seconds.
+            <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
+              {tokens.map((token) => (
+                <option key={token.ticker} value={token.ticker} disabled={!token.available}>
+                  {token.ticker}
+                </option>
+              ))}
+            </Select>
+          </Flex>
+          <br />
+          <Box
+            p={4}
+            borderWidth="4px"
+            borderStyle="solid"
+            borderColor="#8c1c84"
+            borderRadius="lg"
+            my={2}
+            mb={3}
+            cursor="pointer"
+            transition="all 0.07s"
+            style={{
+              animation: isFirstClick ? 'blink 0.2s ease-in-out infinite' : 'none',
+            }}
+            sx={{
+              '@keyframes blink': {
+                '0%': { opacity: 1 },
+                '50%': { opacity: 0.3 },
+                '100%': { opacity: 1 },
+              },
+            }}
+            onClick={handleClick}
+            _hover={{
+              borderColor: '#45a2f8',
+              boxShadow: 'md',
+              transform: 'scale(1.01)',
+            }}>
+            <Text>
+              Send{' '}
+              <strong>
+                {!swapAmount ? 'your' : swapAmount} {selectedToken}
+              </strong>{' '}
+              on <strong>{sourceNetwork}</strong> and you will get <strong>{Number(quote).toFixed(4)}</strong>{' '}
+              <strong>{selectedToken}</strong> on <strong>{destinationNetwork}</strong>.
             </Text>
-          </>
-        )}
+          </Box>
+          <Text fontSize="sm" color="gray.500">
+            Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> {selectedToken} in
+            service fees. It should take about <strong>3</strong> seconds.
+          </Text>
+        </>
         {step === 1 && <Text py={4}>Your tx on Sepolia went through ✅</Text>}{' '}
         {step === 2 && <Text py={4}>Tx on OP Sepolia is being confirmed…</Text>}{' '}
         {step === 3 && <Text py={4}>Tx on OP Sepolia confirmed ✅</Text>}{' '}
