@@ -5,22 +5,20 @@ import {
   Spacer,
   Heading,
   Box,
-  Link,
-  Icon,
-  Button,
-  MenuList,
-  MenuItem,
-  Menu,
-  MenuButton,
-  IconButton,
+  // Link,
+  // Icon,
+  // Menu,
+  // MenuButton,
+  // MenuList,
+  // MenuItem,
+  // IconButton,
 } from '@chakra-ui/react'
 import { LinkComponent } from './LinkComponent'
 import { ThemeSwitcher } from './ThemeSwitcher'
-import { HeadingComponent } from './HeadingComponent'
-import { SITE_NAME } from '../utils/config'
-import { FaGithub } from 'react-icons/fa'
-import { Web3Modal } from '../context/web3modal'
-import { HamburgerIcon } from '@chakra-ui/icons'
+// import { SITE_NAME } from '../utils/config'
+// import { FaGithub } from 'react-icons/fa'
+// import { Web3Modal } from '../context/web3modal'
+// import { HamburgerIcon } from '@chakra-ui/icons'
 
 interface Props {
   className?: string
@@ -40,34 +38,29 @@ export function Header(props: Props) {
       alignItems="center">
       <LinkComponent href="/" invisible>
         <Heading as="h1" size="md" mr={4}>
-          {SITE_NAME}
+          Deamon Bridge
         </Heading>
       </LinkComponent>
 
       <Spacer />
-      {/* <Menu>
-        <MenuButton as={IconButton} aria-label="Options" icon={<HamburgerIcon />} size={'sm'} mr={4} />
-        <MenuList>
-          <LinkComponent href="/eth-op" invisible>
-            <MenuItem fontSize="md">Sepolia to OP Sepolia</MenuItem>
-          </LinkComponent>
-          <LinkComponent href="/eth-arb" invisible>
-            <MenuItem fontSize="md">Sepolia to Arbitrum Sepolia</MenuItem>
-          </LinkComponent>
-          <LinkComponent href="/eth-base" invisible>
-            <MenuItem fontSize="md">Sepolia to Base Sepolia</MenuItem>
-          </LinkComponent>
-        </MenuList>
-      </Menu> */}
       <Flex alignItems="center" gap={4}>
-        <w3m-button />
+        <Box
+          transform="scale(0.85)"
+          sx={{
+            'w3m-button': {
+              transform: 'scale(0.85)',
+              transformOrigin: 'right center',
+            },
+          }}>
+          <w3m-button />
+        </Box>
         <Flex alignItems="center">
           <ThemeSwitcher />
-          <Box mt={2} ml={4}>
+          {/* <Box mt={2} ml={6}>
             <Link href="https://github.com/w3hc/lambula" isExternal>
               <Icon as={FaGithub} boxSize={5} _hover={{ color: 'blue.500' }} />
             </Link>
-          </Box>
+          </Box> */}
         </Flex>
       </Flex>
     </Flex>
