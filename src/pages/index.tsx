@@ -51,7 +51,7 @@ export default function Home() {
   const [txHash, setTxHash] = useState<string>()
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('Unknown')
-  const [swapAmount, setSwapAmount] = useState<string>('0.0005')
+  const [swapAmount, setSwapAmount] = useState<string>('0.001')
   const [availableBalance, setAvailableBalance] = useState<number | null>(200)
   const [selectedToken, setSelectedToken] = useState<string>('ETH')
   const [isFirstClick, setIsFirstClick] = useState(false)
