@@ -2,20 +2,6 @@
 import React, { ReactNode, createContext, useContext } from 'react'
 import { createAppKit, useAppKitProvider } from '@reown/appkit/react'
 import { EthersAdapter } from '@reown/appkit-adapter-ethers'
-// import {
-//   sepolia,
-//   optimism,
-//   zksync,
-//   base,
-//   arbitrum,
-//   gnosis,
-//   polygon,
-//   polygonZkEvm,
-//   mantle,
-//   celo,
-//   avalanche,
-//   degen,
-// } from '@reown/appkit/networks'
 import {
   sepolia,
   optimism,
@@ -33,14 +19,15 @@ import {
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
-// https://docs.reown.com/appkit/react/core/custom-networks
-
 const metadata = {
   name: 'Lambula',
   description: 'Bridge your on-chain assets in seconds',
   url: 'https://lambula.netlify.app',
   icons: ['./favicon.ico'],
 }
+
+// Define the chain namespace type
+type ChainNamespace = 'eip155' | 'solana' | 'cosmos' // Add other namespaces if needed
 
 createAppKit({
   adapters: [new EthersAdapter()],
@@ -57,7 +44,8 @@ createAppKit({
 const AppKitContext = createContext<ReturnType<typeof useAppKitProvider> | null>(null)
 
 export function Web3Modal({ children }: { children: ReactNode }) {
-  const appKitProvider = useAppKitProvider('eip155:11155111' as any)
+  // Use 'eip155' as the chain namespace for Ethereum-compatible chains
+  const appKitProvider = useAppKitProvider('eip155')
 
   return <AppKitContext.Provider value={appKitProvider}>{children}</AppKitContext.Provider>
 }

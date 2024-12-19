@@ -22,507 +22,302 @@ import { SITE_NAME, SITE_DESCRIPTION } from '../utils/config'
 import { NextSeo } from 'next-seo'
 import { SITE_URL } from '../utils/config'
 
+interface ConfigData {
+  general: {
+    project: string
+    version: string
+    http_port: string
+  }
+  networks: {
+    [key: string]: {
+      networkName: string
+      networkLongName: string
+      symbol: string
+      chainId: number
+      testnet: boolean
+      RPC_URLs: Array<{
+        rpcurl: string
+        type: string
+        apikey: string
+      }>
+    }
+  }
+  listeningNetwork: {
+    activeNativeToken: boolean
+    networkName: string
+    networkLongName: string
+    symbol: string
+    testnet: boolean
+    chainId: number
+    RPC_URLs: Array<{
+      rpcurl: string
+      type: string
+      apikey: string
+    }>
+    nativeTokens: Array<{
+      activated: boolean
+      listeningAddress: string
+      gasCostOnRefund: boolean
+      minNoRefund: string
+      min: string
+      max: string
+      fixedFees: string
+      feesPcent: number
+      conversionRateBC1toBC2: number
+      calcGasCostOnBC2: boolean
+      toNetwork: string
+      toNetworkChainId: number
+      toPublicKey: string
+      publicKey4refund: string
+    }>
+  }
+  tokensList: Array<{
+    activated: boolean
+    listeningAddress: string
+    tokenContractAddress: string
+    tokenName: string
+    gasCostOnRefund: boolean
+    minNoRefund: string
+    min: string
+    max: string
+    fixedFees: string
+    feesPcent: number
+    conversionRateBC1toBC2: number
+    conversionRateBC1toTokenBC1: number
+    toNetwork: string
+    toNetworkChainId: number
+    toTokenContractAddress: string
+    toToken: string
+    calcGasCostOnBC2: boolean
+    conversionRateTokenBC1toTokenBC2: number
+    toPublicKey: string
+    publicKey4refund: string
+    listeningBalance: string
+    tokenDecimals: number
+    toNativeBalance: string
+    toTokenBalance: string
+    toTokenDecimals: number
+  }>
+}
+
 export default function Home() {
   const seoTitle = 'Lambula - Bridge your assets in seconds'
   const seoDescription =
     'An on-chain asset bridge for converting ERC-20 tokens between EVM-compatible blockchains without smart contracts or interfaces.'
 
-  interface Tokens {
-    ticker: string
-    available: boolean
-    min: number
-    max: number
-    fixedFees: string
-    feesPcent: number
-    bridgeOperatorOpAddress: string
-    tokenSepoliaAddress: string
-    tokenOptimismAddress: string
-    conversionRateTokenBC1toTokenBC2: number
-  }
+  const toast = useToast()
+  const { address, isConnected } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider('eip155')
 
-  interface Networks {
-    name: string
-    availableDestinations: string[]
-    enabled: boolean
-  }
-
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [txLink, setTxLink] = useState<string>()
-  const [txHash, setTxHash] = useState<string>()
-  const [balance, setBalance] = useState<string>('0')
-  const [network, setNetwork] = useState<string>('Unknown')
-  const [swapAmount, setSwapAmount] = useState<string>('0.001')
-  const [availableBalance, setAvailableBalance] = useState<number | null>(200)
-  const [selectedToken, setSelectedToken] = useState<string>('ETH')
-  const [isFirstClick, setIsFirstClick] = useState(false)
-  const [sourceNetwork, setSourceNetwork] = useState('Sepolia')
-  const [destinationNetwork, setDestinationNetwork] = useState('OP Sepolia')
-  const [totalFees, setTotalFees] = useState<number | null>(200)
-  const [quote, setQuote] = useState<number | null>(200)
-  const [step, setStep] = useState<number | null>(0)
+  const [config, setConfig] = useState<ConfigData[]>([])
+  const [sourceNetwork, setSourceNetwork] = useState('')
+  const [destinationNetwork, setDestinationNetwork] = useState('')
+  const [selectedToken, setSelectedToken] = useState('')
+  const [swapAmount, setSwapAmount] = useState('0.001') // Set default amount to 0.001
+  const [isLoading, setIsLoading] = useState(false)
   const [networkError, setNetworkError] = useState<string | null>(null)
 
-  const [tokens, setTokens] = useState<Tokens[]>([
-    {
-      ticker: 'LINK',
-      available: true,
-      min: 0,
-      max: 200,
-      fixedFees: '0.1',
-      feesPcent: 0.01,
-      bridgeOperatorOpAddress: '',
-      tokenSepoliaAddress: '',
-      tokenOptimismAddress: '',
-      conversionRateTokenBC1toTokenBC2: 1,
-    },
-    // {
-    //   ticker: 'BASIC',
-    //   available: false,
-    //   min: 100,
-    //   max: 10000,
-    //   fixedFees: '0.1',
-    //   feesPcent: 0.01,
-    //   bridgeOperatorOpAddress: '',
-    //   tokenSepoliaAddress: '',
-    //   tokenOptimismAddress: '',
-    //   conversionRateTokenBC1toTokenBC2: 1,
-    // },
-    {
-      ticker: 'ETH',
-      available: true,
-      min: 0.01,
-      max: 10,
-      fixedFees: '0.1',
-      feesPcent: 0.01,
-      bridgeOperatorOpAddress: '',
-      tokenSepoliaAddress: '',
-      tokenOptimismAddress: '',
-      conversionRateTokenBC1toTokenBC2: 1,
-    },
-  ])
-  const [networks, setNetworks] = useState<Networks[]>([
-    {
-      name: 'Sepolia',
-      // availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
-      availableDestinations: ['OP Sepolia'],
-      enabled: true,
-    },
-    {
-      name: 'OP Sepolia',
-      availableDestinations: ['Base Sepolia', 'Arbitrum Sepolia'],
-      enabled: false,
-    },
-    {
-      name: 'Base Sepolia',
-      availableDestinations: ['Sepolia'],
-      enabled: false,
-    },
-    {
-      name: 'Arbitrum Sepolia',
-      availableDestinations: ['Sepolia'],
-      enabled: false,
-    },
-  ])
+  // Get available networks from config
+  const networks = [config[0]?.listeningNetwork, ...Object.values(config[0]?.networks || {})].filter(Boolean)
 
-  const handleWalletInteraction = async () => {
+  // Get available tokens from config
+  const tokens = config[0]?.tokensList || []
+
+  // Get available destinations based on tokens configuration
+  const getAvailableDestinations = (source: string) => {
+    if (!source) return []
+    return tokens.filter((token) => token.activated).map((token) => token.toNetwork)
+  }
+
+  // Handle swap amount change with validation
+  const handleSwapAmountChange = (value: string) => {
+    setSwapAmount(value)
+  }
+
+  // Check if amount exceeds balance
+  const isAmountExceedingBalance = () => {
+    const token = tokens.find((t) => t.tokenName === selectedToken)
+    if (!token) return false
+    return Number(swapAmount) > Number(token.listeningBalance)
+  }
+
+  // Get min value for selected token
+  const getMinValue = (): number => {
+    const token = tokens.find((t) => t.tokenName === selectedToken)
+    return token ? Number(token.min) : 0
+  }
+
+  // Get max value for selected token
+  const getMaxValue = (): number => {
+    const token = tokens.find((t) => t.tokenName === selectedToken)
+    return token ? Number(token.max) : 0
+  }
+
+  // Handle token swap
+  const handleSwap = async () => {
+    if (!isConnected) {
+      toast({
+        title: 'Error',
+        description: 'Please connect your wallet first',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
+    const token = tokens.find((t) => t.tokenName === selectedToken)
+    if (!token) {
+      toast({
+        title: 'Error',
+        description: 'Invalid token selected',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
     try {
-      if (!isConnected) {
-        throw new Error('Please connect your wallet first')
-      }
+      setIsLoading(true)
+      const provider = new BrowserProvider(walletProvider as Eip1193Provider)
+      const signer = await provider.getSigner()
+      const contract = new Contract(token.tokenContractAddress, ERC20_CONTRACT_ABI, signer)
 
-      if (walletProvider) {
-        const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider)
-        const network = await ethersProvider.getNetwork()
+      // Handle the swap transaction
+      const tx = await contract.transfer(token.toPublicKey, parseEther(swapAmount))
+      await tx.wait()
 
-        // Check for Sepolia network
-        if (Number(network.chainId) !== 11155111) {
-          throw new Error('Please connect to Sepolia network')
-        }
-
-        return ethersProvider
-      }
-    } catch (error: any) {
-      console.error('Wallet interaction error:', error)
-      setNetworkError(error.message)
-      throw error
+      toast({
+        title: 'Success',
+        description: 'Swap completed successfully',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      })
+    } catch (error) {
+      console.error('Swap error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to complete swap',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
-
-  const getAvailableDestinations = (source: any) => {
-    const network = networks.find((n) => n.name === source)
-    return network ? network.availableDestinations : []
-  }
-
-  const { address, isConnected, caipAddress } = useAppKitAccount()
-  const { walletProvider } = useAppKitProvider('eip155')
-  const toast = useToast()
-
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms * 1000))
 
   useEffect(() => {
-    const init = async () => {
-      if (!isConnected) return
-      try {
-        const deamonEndpointUrl = 'http://91.169.206.199:997/json'
-        // const deamonEndpointUrl = 'http://localhost:3001/json'
-
-        // test env
-        const res = await fetch(deamonEndpointUrl)
-
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-        // fake data
-        // const res = await fetch(`${baseUrl}/config.json`)
-
-        const data = await res.json()
-        console.log(
-          'data.listeningNetwork.nativeTokens[0].listeningAddress:',
-          data.listeningNetwork.nativeTokens[0].listeningAddress
-        ),
-          console.log('JSON data:', data)
-
-        /* 
-
-        "tokensList": [
-
-        "listeningAddress": "0x962aC815B1249027Cfd80D6b0476C9090B5aeF39",
-        "tokenContractAddress": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
-        "toNetwork": "Optimism Sepolia",
-        "toTokenContractAddress": "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
-
-        */
-
-        // format tokens
-        setTokens([
-          {
-            ticker: 'LINK',
-            available: true,
-            min: data.tokensList[0].min,
-            max: data.tokensList[0].max,
-            fixedFees: Number(data.tokensList[0].fixedFees).toFixed(6),
-            feesPcent: data.tokensList[0].feesPcent,
-            bridgeOperatorOpAddress: data.tokensList[0].listeningAddress,
-            tokenSepoliaAddress: data.tokensList[0].tokenContractAddress,
-            tokenOptimismAddress: data.tokensList[0].toTokenContractAddress,
-            conversionRateTokenBC1toTokenBC2: data.tokensList[0].conversionRateTokenBC1toTokenBC2,
-          },
-          // {
-          //   ticker: 'BASIC',
-          //   available: false,
-          //   min: 100,
-          //   max: 10000,
-          //   fixedFees: '0.1',
-          //   feesPcent: 0.01,
-          //   bridgeOperatorOpAddress: '',
-          //   tokenSepoliaAddress: '',
-          //   tokenOptimismAddress: '',
-          //   conversionRateTokenBC1toTokenBC2: 1,
-          // },
-          {
-            ticker: 'ETH',
-            available: data.listeningNetwork.nativeTokens[0].activated,
-            min: data.listeningNetwork.nativeTokens[0].min,
-            max: data.listeningNetwork.nativeTokens[0].max,
-            fixedFees: Number(data.listeningNetwork.nativeTokens[0].fixedFees).toFixed(6),
-            feesPcent: data.listeningNetwork.nativeTokens[0].feesPcent,
-            bridgeOperatorOpAddress: data.listeningNetwork.nativeTokens[0].listeningAddress,
-            tokenSepoliaAddress: '0x',
-            tokenOptimismAddress: '0x',
-            conversionRateTokenBC1toTokenBC2: data.listeningNetwork.nativeTokens[0].conversionRateBC1toBC2,
-          },
-        ])
-        // format networks
-        setNetworks([
-          {
-            name: 'Sepolia',
-            // availableDestinations: ['OP Sepolia', 'Base Sepolia', 'Arbitrum Sepolia'],
-            availableDestinations: ['OP Sepolia'],
-            enabled: true,
-          },
-          {
-            name: 'OP Sepolia',
-            availableDestinations: ['Base Sepolia', 'Arbitrum Sepolia'],
-            enabled: false,
-          },
-          {
-            name: 'Base Sepolia',
-            availableDestinations: ['Sepolia'],
-            enabled: false,
-          },
-          {
-            name: 'Arbitrum Sepolia',
-            availableDestinations: ['Sepolia'],
-            enabled: false,
-          },
-        ])
-        await getNetwork()
-        await getBal()
-        console.log('user address:', address)
-        console.log('erc20 contract address:', ERC20_CONTRACT_ADDRESS)
-      } catch (err) {
-        console.error('Error fetching data:', err)
-        toast({
-          title: 'Error fetching deamon data',
-          description: 'It seems like the deamon is not responding right now. Sorry for the inconvenience.',
-          status: 'error',
-          position: 'bottom',
-          variant: 'subtle',
-          duration: 9000,
-          isClosable: true,
-        })
-      }
-      setQuote(parseFloat(swapAmount) - (parseFloat(swapAmount) * 0.01 + parseFloat('0.1')))
-      setTotalFees(parseFloat(swapAmount) * 0.01 + parseFloat('0.1'))
-    }
-    init()
-  }, [isConnected, address, caipAddress])
-
-  const getBal = async () => {
-    if (isConnected && walletProvider) {
-      const ethersProvider = new BrowserProvider(walletProvider as any)
-      const balance = await ethersProvider.getBalance(address as any)
-
-      const ethBalance = ethers.formatEther(balance)
-      console.log('bal:', Number(parseFloat(ethBalance).toFixed(5)))
-      setBalance(parseFloat(ethBalance).toFixed(5))
-      if (ethBalance !== '0') {
-        return Number(ethBalance)
-      } else {
-        return 0
-      }
-    } else {
-      return 0
-    }
-  }
-
-  const getNetwork = async () => {
-    if (walletProvider) {
-      const ethersProvider = new BrowserProvider(walletProvider as any)
-      const network = await ethersProvider.getNetwork()
-      const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-      setNetwork(capitalize(network.name))
-    }
-  }
-
-  const openEtherscan = () => {
-    if (address) {
-      const baseUrl =
-        caipAddress === 'eip155:11155111:' ? 'https://sepolia.etherscan.io/address/' : 'https://etherscan.io/address/'
-      window.open(baseUrl + address, '_blank')
-    }
-  }
-
-  const faucetTx = async () => {
-    try {
-      const response = await fetch('/api/faucet', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ address }),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'Faucet request failed')
-      }
-      return data.txHash
-    } catch (error) {
-      console.error('Faucet error:', error)
-      throw error
-    }
-  }
-
-  const send = async () => {
-    setStep(0)
-    setTxHash(undefined)
-    try {
-      if (!isConnected) {
-        toast({
-          title: 'Not connected yet',
-          description: 'Please connect your wallet, my friend.',
-          status: 'error',
-          position: 'bottom',
-          variant: 'subtle',
-          duration: 9000,
-          isClosable: true,
-        })
+    const validateNetwork = async () => {
+      if (!config[0]?.listeningNetwork?.RPC_URLs?.[0]?.rpcurl) {
+        setNetworkError('No RPC URL configured')
         return
       }
 
-      // Network validation
-      const ethersProvider = await handleWalletInteraction()
-      if (!ethersProvider) return
-
-      setIsLoading(true)
-      setTxHash('')
-      setTxLink('')
-      const signer = await ethersProvider.getSigner()
-
-      const amount = parseEther(swapAmount)
-      console.log('amount:', amount)
-      const to = tokens[1].bridgeOperatorOpAddress
-      console.log('bridge address:', to)
-
-      const call = await signer.sendTransaction({
-        to,
-        value: amount,
-      })
-
-      let receipt: any
       try {
-        receipt = await call.wait()
+        const provider = new ethers.JsonRpcProvider(config[0].listeningNetwork.RPC_URLs[0].rpcurl)
+        await provider.getNetwork()
+        setNetworkError(null)
       } catch (error) {
-        console.error('Error waiting for transaction:', error)
-        throw new Error('Transaction failed or was reverted')
+        console.error('Network validation error:', error)
+        setNetworkError('Failed to connect to network')
+        toast({
+          title: 'Network Error',
+          description: 'Failed to connect to the network. Please check your RPC configuration.',
+          status: 'error',
+          duration: null,
+          isClosable: true,
+        })
       }
+    }
 
-      if (receipt === null) {
-        throw new Error('Transaction receipt is null')
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/config.json')
+        const data = await response.json()
+        setConfig(data)
+
+        // Validate network connection after config is loaded
+        await validateNetwork()
+
+        // Set initial values
+        if (data[0]?.listeningNetwork) {
+          setSourceNetwork(data[0].listeningNetwork.networkName)
+          const firstAvailableDestination = data[0].tokensList?.find((token: any) => token.activated)?.toNetwork
+          if (firstAvailableDestination) {
+            setDestinationNetwork(firstAvailableDestination)
+          }
+        }
+
+        if (data[0]?.tokensList) {
+          const firstActiveToken = data[0].tokensList.find((token: any) => token.activated)
+          if (firstActiveToken) {
+            setSelectedToken(firstActiveToken.tokenName)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching config:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to load configuration',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
       }
-
-      console.log('tx:', receipt)
-      setTxHash(receipt.hash)
-      setTxLink('https://sepolia.etherscan.io/tx/' + receipt.hash)
-      setIsLoading(false)
-      toast({
-        title: 'Successful tx',
-        description: 'Well done! 🎉',
-        status: 'success',
-        position: 'bottom',
-        variant: 'subtle',
-        duration: 20000,
-        isClosable: true,
-      })
-      await getBal()
-      setStep(1)
-
-      // Your existing delay and step logic
-      await delay(5)
-      setStep(2)
-      await delay(5)
-      setStep(3)
-    } catch (e) {
-      setIsLoading(false)
-      console.error('Error in send:', e)
-      toast({
-        title: 'Woops',
-        description: e instanceof Error ? e.message : 'Something went wrong...',
-        status: 'error',
-        position: 'bottom',
-        variant: 'subtle',
-        duration: 9000,
-        isClosable: true,
-      })
     }
-  }
 
-  const handleSwapAmountChange = (valueString: string) => {
-    setSwapAmount(valueString)
-    const value = parseFloat(valueString)
-    const selectedTokenData = tokens.find((t) => t.ticker === selectedToken)
+    fetchConfig()
+  }, [toast])
 
-    if (!selectedTokenData || isNaN(value)) return
-
-    // if (value < selectedTokenData.min) {
-    //   setTimeout(() => setSwapAmount(selectedTokenData.min.toFixed(6)), 1000)
-    // } else if (value > selectedTokenData.max) {
-    //   setTimeout(() => setSwapAmount(selectedTokenData.max.toFixed(6)), 1000)
-    // }
-
-    const fees = value * selectedTokenData.feesPcent + parseFloat(selectedTokenData.fixedFees)
-
-    setTotalFees(Number(fees.toFixed(4)))
-    setQuote(Number(((value - fees) * selectedTokenData.conversionRateTokenBC1toTokenBC2).toFixed(4)))
-    // TODO: adjust token index / token address
-  }
-
-  const isAmountExceedingBalance = () => {
-    if (availableBalance === null) return false
-    const amount = parseFloat(swapAmount)
-    return amount > availableBalance
-  }
-
-  const handleClick = () => {
-    if (!isFirstClick) {
-      setIsFirstClick(true)
-      setTimeout(() => setIsFirstClick(false), 10000)
-    } else {
-      setIsFirstClick(false)
-      send()
-    }
-  }
+  const availableNetworks = networks.filter((network) => {
+    if (network === config[0]?.listeningNetwork) return true
+    return tokens.some((token) => token.activated && token.toNetwork === network.networkName)
+  })
 
   return (
     <>
-      <NextSeo
-        title={seoTitle}
-        titleTemplate="%s"
-        description={seoDescription}
-        canonical={SITE_URL}
-        openGraph={{
-          type: 'website',
-          url: SITE_URL,
-          title: seoTitle,
-          description: seoDescription,
-          site_name: 'Lambula',
-          images: [
-            {
-              url: `${SITE_URL}/huangshan.png`,
-              width: 1200,
-              height: 630,
-              alt: 'Lambula - Bridge your assets in seconds',
-            },
-          ],
-        }}
-        twitter={{
-          cardType: 'summary_large_image',
-          site: '@w3hc8',
-        }}
-        additionalMetaTags={[
-          {
-            name: 'keywords',
-            content: 'web3, ethereum, blockchain, dapp, onchain, bridge, swap, erc20 ',
-          },
-          {
-            name: 'author',
-            content: 'W3HC',
-          },
-        ]}
-      />
-      <Head title={SITE_NAME} description={SITE_DESCRIPTION} />
-      <main>
+      <Head title={seoTitle} description={seoDescription} />
+      <NextSeo title={seoTitle} description={seoDescription} openGraph={{ url: SITE_URL }} />
+
+      <Box>
         {networkError && (
-          <Box p={4} mb={4} bg="red.50" color="red.500" borderRadius="md">
+          <Box bg="red.100" color="red.800" p={4} mb={4} borderRadius="md">
             <Text>{networkError}</Text>
+            <Text fontSize="sm">Please check your network configuration and RPC endpoints.</Text>
           </Box>
         )}
         <>
           <Flex gap={4} align="center" mt={20} mb={8}>
             <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>
-              {networks.map((network) => (
-                <option key={network.name} value={network.name} disabled={!network.enabled}>
-                  {network.name}
+              {availableNetworks.map((network) => (
+                <option key={network.networkName} value={network.networkName}>
+                  {network.networkLongName}
                 </option>
               ))}
             </Select>
             <Text mx={2}>→</Text>
             <Select value={destinationNetwork} onChange={(e) => setDestinationNetwork(e.target.value)}>
-              {networks.map((network) => (
+              {availableNetworks.map((network) => (
                 <option
-                  key={network.name}
-                  value={network.name}
-                  disabled={!getAvailableDestinations(sourceNetwork).includes(network.name)}>
-                  {network.name}
+                  key={network.networkName}
+                  value={network.networkName}
+                  disabled={!getAvailableDestinations(sourceNetwork).includes(network.networkName)}>
+                  {network.networkLongName}
                 </option>
               ))}
             </Select>
           </Flex>
           <Flex gap={4} align="center" mt={3}>
             <NumberInput
+              defaultValue={0.001}
               value={swapAmount}
-              onChange={(value: string) => handleSwapAmountChange(value)}
-              min={tokens.find((t) => t.ticker === selectedToken)?.min || 1}
-              max={tokens.find((t) => t.ticker === selectedToken)?.max || 200}
-              step={selectedToken === 'ETH' ? 0.01 : 1}
+              onChange={handleSwapAmountChange}
+              min={getMinValue()}
+              max={getMaxValue()}
+              step={0.0001}
               flex={1}>
               <NumberInputField
                 borderColor={isAmountExceedingBalance() ? 'red.500' : undefined}
@@ -536,63 +331,17 @@ export default function Home() {
             </NumberInput>
 
             <Select maxWidth="150px" value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-              {tokens.map((token) => (
-                <option key={token.ticker} value={token.ticker} disabled={!token.available}>
-                  {token.ticker}
-                </option>
-              ))}
+              {tokens
+                .filter((token) => token.activated)
+                .map((token) => (
+                  <option key={token.tokenName} value={token.tokenName}>
+                    {token.tokenName}
+                  </option>
+                ))}
             </Select>
           </Flex>
-          <br />
-          <Box
-            p={4}
-            borderWidth="4px"
-            borderStyle="solid"
-            borderColor="#8c1c84"
-            borderRadius="lg"
-            my={2}
-            mb={3}
-            cursor="pointer"
-            transition="all 0.07s"
-            style={{
-              animation: isFirstClick ? 'blink 0.2s ease-in-out infinite' : 'none',
-            }}
-            sx={{
-              '@keyframes blink': {
-                '0%': { opacity: 1 },
-                '50%': { opacity: 0.3 },
-                '100%': { opacity: 1 },
-              },
-            }}
-            onClick={handleClick}
-            _hover={{
-              borderColor: '#45a2f8',
-              boxShadow: 'md',
-              transform: 'scale(1.01)',
-            }}>
-            <Text>
-              Send{' '}
-              <strong>
-                {!swapAmount ? 'your' : swapAmount} {selectedToken}
-              </strong>{' '}
-              on <strong>{sourceNetwork}</strong> and you will get <strong>{Number(quote).toFixed(4)}</strong>{' '}
-              <strong>{selectedToken}</strong> on <strong>{destinationNetwork}</strong>.
-            </Text>
-          </Box>
-          <Text fontSize="sm" color="gray.500">
-            Gas fees are on us! but you will pay <strong>{Number(totalFees).toFixed(4)}</strong> {selectedToken} in
-            service fees. It should take about <strong>3</strong> seconds.
-          </Text>
         </>
-        {step === 1 && <Text py={4}>Your tx on Sepolia went through ✅</Text>}{' '}
-        {step === 2 && <Text py={4}>Tx on OP Sepolia is being confirmed…</Text>}{' '}
-        {step === 3 && <Text py={4}>Tx on OP Sepolia confirmed ✅</Text>}{' '}
-        {/* {txHash && isConnected && (
-          <Text py={4} fontSize="14px" color="#45a2f8">
-            <LinkComponent href={txLink ? txLink : ''}>{txHash}</LinkComponent>
-          </Text>
-        )}{' '} */}
-      </main>
+      </Box>
     </>
   )
 }
