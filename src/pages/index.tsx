@@ -60,6 +60,7 @@ export default function Home() {
   const [totalFees, setTotalFees] = useState<number | null>(200)
   const [quote, setQuote] = useState<number | null>(200)
   const [step, setStep] = useState<number | null>(0)
+  const [networkError, setNetworkError] = useState<string | null>(null)
 
   const [tokens, setTokens] = useState<Tokens[]>([
     {
@@ -123,6 +124,30 @@ export default function Home() {
     },
   ])
 
+  const handleWalletInteraction = async () => {
+    try {
+      if (!isConnected) {
+        throw new Error('Please connect your wallet first')
+      }
+
+      if (walletProvider) {
+        const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider)
+        const network = await ethersProvider.getNetwork()
+
+        // Check for Sepolia network
+        if (Number(network.chainId) !== 11155111) {
+          throw new Error('Please connect to Sepolia network')
+        }
+
+        return ethersProvider
+      }
+    } catch (error: any) {
+      console.error('Wallet interaction error:', error)
+      setNetworkError(error.message)
+      throw error
+    }
+  }
+
   const getAvailableDestinations = (source: any) => {
     const network = networks.find((n) => n.name === source)
     return network ? network.availableDestinations : []
@@ -167,7 +192,6 @@ export default function Home() {
         */
 
         // format tokens
-
         setTokens([
           {
             ticker: 'LINK',
@@ -323,90 +347,56 @@ export default function Home() {
         })
         return
       }
-      if (walletProvider) {
-        setIsLoading(true)
-        setTxHash('')
-        setTxLink('')
-        const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider)
-        const signer = await ethersProvider.getSigner()
 
-        ///// Send ETH if needed /////
-        // const bal = await getBal()
-        // console.log('bal:', bal)
-        // if (bal < 0.025) {
-        //   const faucetTxHash = await faucetTx()
-        //   console.log('faucet tx:', faucetTxHash)
-        //   const bal = await getBal()
-        //   console.log('bal:', bal)
-        // }
+      // Network validation
+      const ethersProvider = await handleWalletInteraction()
+      if (!ethersProvider) return
 
-        ///// Call /////
-        // const erc20 = new Contract(tokens[0].tokenSepoliaAddress, ERC20_CONTRACT_ABI, signer) // TODO: adjust token index ([0])
+      setIsLoading(true)
+      setTxHash('')
+      setTxLink('')
+      const signer = await ethersProvider.getSigner()
 
-        ///// Token call /////
-        // const amount = parseEther(swapAmount)
-        // const to = tokens[0].bridgeOperatorOpAddress
-        // const call = await erc20.transfer(to, amount)
+      const amount = parseEther(swapAmount)
+      console.log('amount:', amount)
+      const to = tokens[1].bridgeOperatorOpAddress
+      console.log('bridge address:', to)
 
-        ///// ETH call /////
-        const amount = parseEther(swapAmount)
-        console.log('amount:', amount)
-        const to = tokens[1].bridgeOperatorOpAddress
-        console.log('bridge address:', to)
+      const call = await signer.sendTransaction({
+        to,
+        value: amount,
+      })
 
-        const call = await signer.sendTransaction({
-          to,
-          value: amount,
-        })
-
-        let receipt: any
-        try {
-          receipt = await call.wait()
-        } catch (error) {
-          console.error('Error waiting for transaction:', error)
-          throw new Error('Transaction failed or was reverted')
-        }
-
-        if (receipt === null) {
-          throw new Error('Transaction receipt is null')
-        }
-
-        console.log('tx:', receipt)
-        setTxHash(receipt.hash)
-        setTxLink('https://sepolia.etherscan.io/tx/' + receipt.hash)
-        setIsLoading(false)
-        toast({
-          title: 'Successful tx',
-          description: 'Well done! 🎉',
-          status: 'success',
-          position: 'bottom',
-          variant: 'subtle',
-          duration: 20000,
-          isClosable: true,
-        })
-        await getBal()
-        setStep(1)
-      }
-      await delay(5) // TODO: check tx status on OP Sepolia // "rpcurl": "https://sepolia.optimism.io",
-
-      /** 
-
-  FAIRE 2 FONCTIONS : 1 token, 1 natif
-
-      let new_signer_receive_balance = 0
-      let i = 0
-      while (true) {
-        await sleep(waitingTime)
-        new_signer_receive_balance = await providerReceive.getBalance(signerSender.address)
-        if (!new_signer_receive_balance.eq(signer_receive_balance)) break
-        new_signer_balance = await providerSend.getBalance(signerSender.address)
-        if (new_signer_balance.eq(signer_balance)) break
-        i++
-        if (i > maxTime) break
+      let receipt: any
+      try {
+        receipt = await call.wait()
+      } catch (error) {
+        console.error('Error waiting for transaction:', error)
+        throw new Error('Transaction failed or was reverted')
       }
 
-      **/
+      if (receipt === null) {
+        throw new Error('Transaction receipt is null')
+      }
 
+      console.log('tx:', receipt)
+      setTxHash(receipt.hash)
+      setTxLink('https://sepolia.etherscan.io/tx/' + receipt.hash)
+      setIsLoading(false)
+      toast({
+        title: 'Successful tx',
+        description: 'Well done! 🎉',
+        status: 'success',
+        position: 'bottom',
+        variant: 'subtle',
+        duration: 20000,
+        isClosable: true,
+      })
+      await getBal()
+      setStep(1)
+
+      // Your existing delay and step logic
+      await delay(5)
       setStep(2)
       await delay(5)
       setStep(3)
@@ -500,6 +490,11 @@ export default function Home() {
       />
       <Head title={SITE_NAME} description={SITE_DESCRIPTION} />
       <main>
+        {networkError && (
+          <Box p={4} mb={4} bg="red.50" color="red.500" borderRadius="md">
+            <Text>{networkError}</Text>
+          </Box>
+        )}
         <>
           <Flex gap={4} align="center" mt={20} mb={8}>
             <Select value={sourceNetwork} onChange={(e) => setSourceNetwork(e.target.value)}>

@@ -16,7 +16,20 @@ import { EthersAdapter } from '@reown/appkit-adapter-ethers'
 //   avalanche,
 //   degen,
 // } from '@reown/appkit/networks'
-import { sepolia } from '@reown/appkit/networks'
+import {
+  sepolia,
+  optimism,
+  zksync,
+  base,
+  arbitrum,
+  gnosis,
+  polygon,
+  polygonZkEvm,
+  mantle,
+  celo,
+  avalanche,
+  degen,
+} from '@reown/appkit/networks'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
@@ -32,8 +45,7 @@ const metadata = {
 createAppKit({
   adapters: [new EthersAdapter()],
   metadata,
-  // networks: [sepolia, optimism, zksync, base, arbitrum, gnosis, polygon, polygonZkEvm, mantle, celo, avalanche, degen],
-  networks: [sepolia],
+  networks: [sepolia, optimism, zksync, base, arbitrum, gnosis, polygon, polygonZkEvm, mantle, celo, avalanche, degen],
   defaultNetwork: sepolia,
   projectId,
   features: {
