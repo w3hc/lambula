@@ -1,75 +1,69 @@
-import React from 'react'
-import {
-  Flex,
-  useColorModeValue,
-  Spacer,
-  Heading,
-  Box,
-  Link,
-  Icon,
-  Button,
-  MenuList,
-  MenuItem,
-  Menu,
-  MenuButton,
-  IconButton,
-} from '@chakra-ui/react'
-import { LinkComponent } from './LinkComponent'
-import { ThemeSwitcher } from './ThemeSwitcher'
-import { HeadingComponent } from './HeadingComponent'
-import { SITE_NAME } from '../utils/config'
-import { FaGithub } from 'react-icons/fa'
-import { Web3Modal } from '../context/web3modal'
-import { HamburgerIcon } from '@chakra-ui/icons'
+'use client'
 
-interface Props {
-  className?: string
-}
+import { Box, Button, Flex, Image } from '@chakra-ui/react'
+import { useAppKit } from '@reown/appkit/react'
+import { useAppKitAccount, useDisconnect } from '@reown/appkit/react'
+import Link from 'next/link'
 
-export function Header(props: Props) {
-  const className = props.className ?? ''
+export default function Header() {
+  const { open } = useAppKit()
+  const { isConnected, address } = useAppKitAccount()
+  const { disconnect } = useDisconnect()
+
+  const handleConnect = () => {
+    try {
+      open({ view: 'Connect' })
+    } catch (error) {
+      console.error('Connection error:', error)
+    }
+  }
+
+  const handleDisconnect = () => {
+    try {
+      disconnect()
+    } catch (error) {
+      console.error('Disconnect error:', error)
+    }
+  }
 
   return (
-    <Flex
-      as="header"
-      className={className}
-      bg={useColorModeValue('gray.100', 'gray.900')}
-      px={4}
-      py={5}
-      mb={8}
-      alignItems="center">
-      <LinkComponent href="/" invisible>
-        <Heading as="h1" size="md" mr={4}>
-          {SITE_NAME}
-        </Heading>
-      </LinkComponent>
-
-      <Spacer />
-      {/* <Menu>
-        <MenuButton as={IconButton} aria-label="Options" icon={<HamburgerIcon />} size={'sm'} mr={4} />
-        <MenuList>
-          <LinkComponent href="/eth-op" invisible>
-            <MenuItem fontSize="md">Sepolia to OP Sepolia</MenuItem>
-          </LinkComponent>
-          <LinkComponent href="/eth-arb" invisible>
-            <MenuItem fontSize="md">Sepolia to Arbitrum Sepolia</MenuItem>
-          </LinkComponent>
-          <LinkComponent href="/eth-base" invisible>
-            <MenuItem fontSize="md">Sepolia to Base Sepolia</MenuItem>
-          </LinkComponent>
-        </MenuList>
-      </Menu> */}
-      <Flex alignItems="center" gap={4}>
-        <w3m-button />
-        <Flex alignItems="center">
-          <ThemeSwitcher />
-          <Box mt={2} ml={4}>
-            <Link href="https://github.com/w3hc/lambula" isExternal>
-              <Icon as={FaGithub} boxSize={5} _hover={{ color: 'blue.500' }} />
-            </Link>
-          </Box>
+    <Box as="header" py={4} position="fixed" w="100%" top={0} zIndex={10}>
+      <Flex justify="space-between" align="center" px={4}>
+        <Link href="/">Deamon Bridge</Link>
+        <Flex gap={2} align="center">
+          {!isConnected ? (
+            <Button
+              bg="#8c1c84"
+              color="white"
+              _hover={{
+                bg: '#6d1566',
+              }}
+              onClick={handleConnect}
+              size="sm"
+            >
+              Login
+            </Button>
+          ) : (
+            <>
+              <Box transform="scale(0.85)" transformOrigin="right center">
+                <appkit-network-button />
+              </Box>
+              <Button
+                bg="#8c1c84"
+                color="white"
+                _hover={{
+                  bg: '#6d1566',
+                }}
+                onClick={handleDisconnect}
+                size="sm"
+                ml={4}
+              >
+                Logout
+              </Button>
+            </>
+          )}
         </Flex>
       </Flex>
-    </Flex>
+    </Box>
   )
 }
